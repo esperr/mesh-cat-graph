@@ -1,0 +1,330 @@
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+  <title>Results by MeSH category</title>
+  <link href="custom.css" rel="stylesheet" type="text/css">
+
+</head>
+
+<!--
+Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
+-->
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+<h1>Search by MeSH Category</h1>
+
+<p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
+
+<p>Enter your PubMed search below:</p>
+<form>
+    <input id="pmsearch" type="text" />
+    <input id="runsearch" type="button" value="Search by category" />
+</form>
+
+
+<div id="counts"></div>
+
+<div id="chart_div"></div>
+
+
+
+<script>
+
+
+(function() {
+
+var searches = [];
+var search = [];
+var catCounts = [];
+var catClone = [];
+google.charts.load('current', {packages: ['corechart', 'bar']});
+
+
+var cats =["Analytical, Diagnostic and Therapeutic Techniques and Equipment", "Anatomy", "Anthropology, Education, Sociology and Social Phenomena", "Chemicals and Drugs", "Disciplines and Occupations", "Diseases", "Geographical Locations", "Health Care", "Humanities", "Information Science", "Organisms", "Persons", "Phenomena and Processes", "Psychiatry and Psychology", "Technology and Food and Beverages"];
+
+term = " ";
+dosearch(term);
+
+function handlesearch() {
+  term = $("#pmsearch").val();
+  dosearch(term)
+  $("#pmsearch").val("");
+  document.getElementById('pmsearch').focus();
+  }
+
+function showWait() {
+  $( "#pmsearch" ).prop( "disabled", true );
+  $( "#runsearch" ).prop( "disabled", true );
+  $( "form" ).addClass( "hideme" );
+
+  if (searches.length > 0) {
+      $("#results").append('<div id="loading"><p>Searching -- please wait....</p><img src="loading-bars.svg" width="' + mainwidth*.50 + '"></div>');
+      $( "#chart_div" ).addClass( "hideme" );
+    } else {
+      $( "form" ).append( '<div id="baseline">Loading baseline...</span>' );
+    }
+  }
+
+  function showDone() {
+    $( "#pmsearch" ).prop( "disabled", false );
+    $( "#runsearch" ).prop( "disabled", false );
+    $( "form" ).removeClass( "hideme" );
+    $( "#runsearch" ).removeClass( "hideme" );
+    $("#results #loading").remove();
+    $("#search #baseline").remove();
+    //$( "#past" ).removeClass( "hideme" );
+    }
+
+function dosearch(term) {
+  showWait();
+  catClone = cats.slice(0);
+  while (catCounts.length) { catCounts.pop(); }
+  $.ajax({
+    url: 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+    data: {
+    db: 'pubmed',
+    usehistory: 'y',
+    term: term + " AND medline[sb]",
+    retmode: 'json',
+    retmax: 0,
+    email: 'ed_sperr@hotmail.com',
+    tool: 'catcount'
+    },
+    success: function( data ) {
+      // e.g. filter the response
+      search = {
+        'term': term,
+        'count': data.esearchresult.count,
+        'categories': []
+      };
+      searches.push(search);
+      getCatCounts(term);
+      }
+  });
+}
+
+$("#runsearch").click(function(){
+    handlesearch();
+  });
+
+ $(document).keypress(function(e) {
+  if(e.which == 13) {
+      //Because both IE and FF now "helpfully" ignore the spec and treat 'button' the same as 'submit'
+      e.preventDefault();
+      handlesearch();
+  }
+});
+
+function getCatCounts(term) {
+	//We do it this way instaed of a loop so we can easily throttle the count requests with setTimeout
+  category = catClone.pop();
+  searchstr = ' AND medline[sb] AND "' + category + ' Category"[Mesh]';
+	esearch(term, searchstr);
+	if (catClone.length) {
+    setTimeout(function(){
+      getCatCounts(term);
+    }, 300);
+	} else {
+		return;
+		}
+}
+
+function updateCatCounts(data) {
+  searchIndex = searches.length - 1;
+
+  catIndex = data.esearchresult.translationstack.length - 2;
+  category = data.esearchresult.translationstack[catIndex].term;
+  category = category.slice(1, -16)
+  count = data.esearchresult.count;
+  mySearch = searches[searchIndex];
+  total = mySearch.count;
+  proportion = count / total;
+  mycatCount = new setcatCount(category,data.esearchresult.count,proportion);
+  catCounts.push(mycatCount);
+  if (catCounts.length == 15) {
+
+    theseCategories = catCounts.slice(0);
+    mySearch.categories = theseCategories;
+    //if (searches.length > 1) { mySearch.categories = ["farts"]; }
+    displayCounts();
+  }
+ }
+
+
+function setcatCount(category, sresults, proportion) {
+    this.category = category;
+    this.size = Number(sresults);
+    this.proportion = proportion;
+}
+
+function esearch(term, searchstr) {
+  $.ajax({
+	url: 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+	data: {
+	db: 'pubmed',
+	usehistory: 'y',
+	term: term + searchstr,
+	retmode: 'json',
+	retmax: 0,
+	email: 'ed_sperr@hotmail.com',
+	tool: 'catcount'
+},
+  success: updateCatCounts
+     });
+}
+
+function displayCounts() {
+  var percentArray =  [['Category', 'Your search percentage', 'Percentage of all records in MEDLINE']];
+  var proportionsArray = [['Category', 'Proportion',]];
+  showDone();
+
+  searchIndex = searches.length - 1;
+  if (searchIndex < 1) {
+    $( "#counts" ).append( "<p>Baseline computed...</p>" );
+    return;
+  }
+  total = Number(searches[searchIndex].count);
+  categories = searches[searchIndex].categories;
+  categories = keysrt(categories, 'category');
+  $( "#counts" ).prepend( "<div class='proportionchart'>" );
+  $( "#counts" ).prepend( "<div class='percentagechart'>" );
+  $( "#counts" ).prepend( '<h2>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h2>" );
+
+
+  origcategories = keysrt(searches[0].categories, 'category');
+
+  $.each( categories, function( i, catitem ) {
+       category = catitem.category;
+       origpercent = Math.round(origcategories[i].proportion*100);
+       percent =  Math.round(catitem.proportion*100);
+       comparison = catitem.proportion - origcategories[i].proportion;
+       proportionsArray.push([category, comparison]);
+       percentArray.push([category, percent, origpercent]);
+       });
+
+
+   var percentOptions = {
+       chart: {
+         title: 'Percentage of results in each category for "' + searches[searchIndex].term + '"'
+              },
+       height: 300,
+       hAxis: {
+         title: 'Percentage',
+         minValue: 0,
+           },
+       vAxis: {
+         title: 'Category'
+         },
+       bars: 'horizontal'
+      };
+
+      var compareoptions = {
+              bars: 'horizontal',
+              height: 300,
+             title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
+             hAxis: {
+               title: 'Proportion',
+               maxValue: .5,
+               minValue: -.5,
+               viewWindow: {
+                 max: .6,
+                 min: -.6
+               }
+             },
+             vAxis: {
+               title: 'Categories'
+             }
+           };
+
+  var perdata = google.visualization.arrayToDataTable( percentArray );
+  var myPNodes = document.getElementsByClassName("percentagechart");
+  var myPNode = myPNodes[0];
+  var perchart = new google.charts.Bar( myPNode );
+  perchart.draw(perdata, percentOptions);
+
+  var compdata = google.visualization.arrayToDataTable( proportionsArray );
+  var myCNodes = document.getElementsByClassName("proportionchart");
+  var myCNode = myCNodes[0];
+  var chart = new google.charts.Bar( myCNode );
+  chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
+
+
+}
+
+function compareCounts() {
+  var proportionsArray = [['Category', 'Proportion',]];
+
+  searchIndex = searches.length - 1;
+  baseCounts = keysrt(searches[0].categories, 'category');
+  myCounts = keysrt(searches[searchIndex].categories, 'category');
+
+  $( "#counts" ).append( "<ul>" );
+  $( "#counts" ).append( "<div class='proportionchart'>" );
+
+
+  $.each( myCounts, function( i, catitem ) {
+       category = catitem.category;
+       comparison = catitem.proportion - baseCounts[i].proportion;
+       proportionsArray.push([category, comparison]);
+       });
+
+  console.log(proportionsArray);
+  var data = google.visualization.arrayToDataTable( proportionsArray );
+  var myNodes = document.getElementsByClassName("proportionchart");
+  var myNodeIndex = myNodes.length-1;
+  var myNode = myNodes[myNodeIndex];
+
+  var compareoptions = {
+          bars: 'horizontal',
+          height: 300,
+         title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
+         hAxis: {
+           title: 'Proportion',
+           maxValue: .5,
+           minValue: -.5,
+           viewWindow: {
+             max: .6,
+             min: -.6
+           }
+         },
+         vAxis: {
+           title: 'Categories'
+         }
+       };
+
+  //var chart = new google.visualization.BarChart(myNode);
+  //var chart = new google.visualization.BarChart( document.getElementsByClassName("proportionchart").slice(-1)[0] );
+  //chart.draw(dataTable, options);
+
+  var chart = new google.charts.Bar( myNode );
+  chart.draw(data, google.charts.Bar.convertOptions(options));
+
+  }
+
+
+function keysrt(arr, key, reverse) {
+    var sortOrder = 1;
+    if(reverse){
+        sortOrder = -1;
+    }
+    return arr.sort(function(a, b) {
+        var x = a[key],
+            y = b[key];
+
+        return sortOrder * ((x < y) ? -1 : ((x > y) ? 1 : 0));
+    });
+}
+
+})
+
+();
+
+
+
+
+</script>
+</body>
+</html>
