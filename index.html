@@ -19,20 +19,15 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 <p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
 
 <p>Enter your PubMed search below:</p>
-<form>
+<form id="search">
     <input id="pmsearch" type="text" />
     <input id="runsearch" type="button" value="Search by category" />
 </form>
 
-
 <div id="counts"></div>
-
 <div id="chart_div"></div>
 
-
-
 <script>
-
 
 (function() {
 
@@ -59,12 +54,11 @@ function showWait() {
   $( "#pmsearch" ).prop( "disabled", true );
   $( "#runsearch" ).prop( "disabled", true );
   $( "form" ).addClass( "hideme" );
-
+  $("#search").after('<progress id="fetchresults" value="1" max="100"></progress>');
   if (searches.length > 0) {
-      $("#results").append('<div id="loading"><p>Searching -- please wait....</p><img src="loading-bars.svg" width="' + mainwidth*.50 + '"></div>');
-      $( "#chart_div" ).addClass( "hideme" );
+      $("#search").after('<div id="loading"><p>Searching -- please wait....</p>');
     } else {
-      $( "form" ).append( '<div id="baseline">Loading baseline...</span>' );
+      $( "#search" ).after( '<div id="loading">Loading baseline...</span>' );
     }
   }
 
@@ -73,8 +67,8 @@ function showWait() {
     $( "#runsearch" ).prop( "disabled", false );
     $( "form" ).removeClass( "hideme" );
     $( "#runsearch" ).removeClass( "hideme" );
-    $("#results #loading").remove();
-    $("#search #baseline").remove();
+    $("#loading").remove();
+    $("#fetchresults").remove();
     //$( "#past" ).removeClass( "hideme" );
     }
 
@@ -144,8 +138,8 @@ function updateCatCounts(data) {
   proportion = count / total;
   mycatCount = new setcatCount(category,data.esearchresult.count,proportion);
   catCounts.push(mycatCount);
+  $("progress").attr("value", catCounts.length*6.666);
   if (catCounts.length == 15) {
-
     theseCategories = catCounts.slice(0);
     mySearch.categories = theseCategories;
     //if (searches.length > 1) { mySearch.categories = ["farts"]; }
@@ -179,23 +173,22 @@ function esearch(term, searchstr) {
 function displayCounts() {
   var percentArray =  [['Category', 'Your search percentage', 'Percentage of all records in MEDLINE']];
   var proportionsArray = [['Category', 'Proportion',]];
+
+
+  $( "#chart_div" ).empty();
   showDone();
 
   searchIndex = searches.length - 1;
   if (searchIndex < 1) {
-    $( "#counts" ).append( "<p>Baseline computed...</p>" );
     return;
   }
   total = Number(searches[searchIndex].count);
   categories = searches[searchIndex].categories;
   categories = keysrt(categories, 'category');
-  $( "#counts" ).prepend( "<div class='proportionchart'>" );
-  $( "#counts" ).prepend( "<div class='percentagechart'>" );
-  $( "#counts" ).prepend( '<h2>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h2>" );
-
-
+  $( "#chart_div" ).prepend( "<div class='proportionchart'>" );
+  $( "#chart_div" ).prepend( "<div class='percentagechart'>" );
+  $( "#chart_div" ).prepend( '<h2>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h2>" );
   origcategories = keysrt(searches[0].categories, 'category');
-
   $.each( categories, function( i, catitem ) {
        category = catitem.category;
        origpercent = Math.round(origcategories[i].proportion*100);
@@ -204,8 +197,6 @@ function displayCounts() {
        proportionsArray.push([category, comparison]);
        percentArray.push([category, percent, origpercent]);
        });
-
-
    var percentOptions = {
        chart: {
          title: 'Percentage of results in each category for "' + searches[searchIndex].term + '"'
@@ -250,8 +241,6 @@ function displayCounts() {
   var myCNode = myCNodes[0];
   var chart = new google.charts.Bar( myCNode );
   chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
-
-
 }
 
 function compareCounts() {

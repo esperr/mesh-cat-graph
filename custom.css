@@ -4,6 +4,14 @@ body {
   margin-right: 4em;
   }
 
-form { margin-top: 2em;
-  margin-bottom: 2em;
-}
+
+#search {
+    border: 1px solid grey;
+    border-radius: 10px;
+    margin-top: 2em;
+    margin-bottom: 2em;
+    width: 75%;
+    padding: 2em;
+  }
+
+.hideme { opacity: 0.2; }
