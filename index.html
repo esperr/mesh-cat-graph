@@ -3,6 +3,7 @@
   <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
   <title>Results by MeSH category</title>
   <link href="custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
 </head>
 
@@ -12,21 +13,34 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 <body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<div class="container">
 
+<div class="jumbotron">
+  <h1>Search by MeSH Category</h1>
+</div>
 
-<h1>Search by MeSH Category</h1>
 
 <p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
 
 <p>Enter your PubMed search below:</p>
-<form id="search">
+<!--<form id="search">
     <input id="pmsearch" type="text" />
     <input id="runsearch" type="button" value="Search by category" />
 </form>
+-->
+
+<div id="search" class="input-group input-group-lg">
+  <input type="text" id="pmsearch" class="form-control">
+  <span class="input-group-btn">
+    <button id="runsearch" class="btn btn-default" type="button">Search</button>
+  </span>
+
+</div>
 
 <div id="counts"></div>
 <div id="chart_div"></div>
 
+</div>
 <script>
 
 (function() {
@@ -185,8 +199,8 @@ function displayCounts() {
   total = Number(searches[searchIndex].count);
   categories = searches[searchIndex].categories;
   categories = keysrt(categories, 'category');
-  $( "#chart_div" ).prepend( "<div class='proportionchart'>" );
-  $( "#chart_div" ).prepend( "<div class='percentagechart'>" );
+  $( "#chart_div" ).prepend( "<div class='proportionchart panel panel-default'>" );
+  $( "#chart_div" ).prepend( "<div class='percentagechart panel panel-default'>" );
   $( "#chart_div" ).prepend( '<h2>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h2>" );
   origcategories = keysrt(searches[0].categories, 'category');
   $.each( categories, function( i, catitem ) {
@@ -201,11 +215,12 @@ function displayCounts() {
        chart: {
          title: 'Percentage of results in each category for "' + searches[searchIndex].term + '"'
               },
-       height: 300,
+       height: 400,
        hAxis: {
          title: 'Percentage',
          minValue: 0,
            },
+      legend: { position: 'none' },
        vAxis: {
          title: 'Category'
          },
@@ -214,7 +229,9 @@ function displayCounts() {
 
       var compareoptions = {
               bars: 'horizontal',
-              height: 300,
+              height: 400,
+              legend: { position: 'none' },
+
              title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
              hAxis: {
                title: 'Proportion',
