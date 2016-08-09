@@ -19,8 +19,7 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
   <h1>Search by MeSH Category</h1>
 </div>
 
-
-<p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
+<div class="row">
 
 <p>Enter your PubMed search below:</p>
 <!--<form id="search">
@@ -28,6 +27,8 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
     <input id="runsearch" type="button" value="Search by category" />
 </form>
 -->
+
+<div class="col-sm-6 col-md-8 col-lg-9">
 
 <div id="search" class="input-group input-group-lg">
   <input type="text" id="pmsearch" class="form-control">
@@ -38,8 +39,26 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 </div>
 
 <div id="counts"></div>
-<div id="chart_div"></div>
+<div id="chart_div">
+  <p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
+</div>
 
+</div>
+
+<div class="col-sm-6 col-md-4 col-lg-3">
+
+<div id="past" class="panel panel-default hideme">
+  <div class="panel-heading">
+    <h3 class="panel-title">Past searches</h3>
+  </div>
+  <div class="panel-body">
+    <dl></dl>
+  </div>
+</div>
+
+</div>
+
+</div>
 </div>
 <script>
 
@@ -83,8 +102,46 @@ function showWait() {
     $( "#runsearch" ).removeClass( "hideme" );
     $("#loading").remove();
     $("#fetchresults").remove();
-    //$( "#past" ).removeClass( "hideme" );
     }
+
+$( "#past" ).on( "click", ".pastsearch", function() {
+  var searchIndex = $(this).data("searchIndex");
+  displayCounts(searchIndex);
+  });
+
+$( "#past" ).on( "click", "#showcompare", function() {
+    $( "#past" ).empty();
+    $( "#past" ).append("<dl>");
+    for (var i = 1; i < searches.length; i++) {
+      $( "#past dl" ).append('<dt><input type="checkbox" name="term" id="' + i + '" value="' + i + '"> <label for="' + i + '">' + searches[i].term + '</label></dt>');
+    }
+    $("#past dl").after('<input id="compare" type="button" value="Compare" /><p style="margin-top: 1em;"><a href="#!" class="showsearches">(go back to search list)</a></p>')
+    });
+
+$( "#past" ).on( "click", "#compare", function() {
+    var searchone = $("input[name='term']:checked").first().val();
+    var searchtwo = $("input[name='term']:checked").last().val();
+    compareTerms(searchone, searchtwo);
+    });
+
+$( "#past" ).on( "click", ".showsearches", function() {
+    showSearches();
+    });
+
+function showSearches() {
+  $( "#past" ).empty();
+  $( "#past" ).removeClass( "hideme" );
+  $( "#past" ).append("<div class='panel-heading'>");
+  $( "#past div" ).append("<h3 class='panel-title'>Searches</h3>");
+  $( "#past" ).append("<dl>");
+  for (var i = 1; i < searches.length; i++) {
+    $("#past dl").append('<dt class="pastsearch"><a href="#!">' + searches[i].term + "</a></dt>");
+    $("#past dt").last().data("searchIndex", i);
+    }
+    if (searches.length > 2) {
+      $("#past dl").after('<input id="showcompare" type="button" value="Compare terms" />')
+    }
+ }
 
 function dosearch(term) {
   showWait();
@@ -184,18 +241,18 @@ function esearch(term, searchstr) {
      });
 }
 
-function displayCounts() {
+function displayCounts(searchIndex) {
   var percentArray =  [['Category', 'Your search percentage', 'Percentage of all records in MEDLINE']];
   var proportionsArray = [['Category', 'Proportion',]];
-
-
-  $( "#chart_div" ).empty();
   showDone();
-
-  searchIndex = searches.length - 1;
+  if(typeof searchIndex == 'undefined') {
+    var searchIndex = searches.length - 1;
+  }
   if (searchIndex < 1) {
     return;
   }
+  showSearches();
+  $( "#chart_div" ).empty();
   total = Number(searches[searchIndex].count);
   categories = searches[searchIndex].categories;
   categories = keysrt(categories, 'category');
@@ -260,55 +317,42 @@ function displayCounts() {
   chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
 }
 
-function compareCounts() {
-  var proportionsArray = [['Category', 'Proportion',]];
 
-  searchIndex = searches.length - 1;
-  baseCounts = keysrt(searches[0].categories, 'category');
-  myCounts = keysrt(searches[searchIndex].categories, 'category');
+function compareTerms(searchone, searchtwo) {
+  $( "#chart_div" ).empty();
+  var compareArray = [['Category', 'Proportion',]];
+  var termOne = keysrt(searches[searchone].categories, 'category');
+  var termTwo = keysrt(searches[searchtwo].categories, 'category');
+  $( "#chart_div" ).append( "<div class='comparechart panel panel-default'>" );
+  $.each( termOne, function( i, catitem ) {
+    //make our first proportion negative, then add them together to find the midpoint
+    oneprop = catitem.proportion - (catitem.proportion*2);
+    comparison = oneprop + termTwo[i].proportion;
+    compareArray.push([catitem.category, comparison]);
+    });
+    var compareoptions = {
+            bars: 'horizontal',
+            height: 400,
+            legend: { position: 'none' },
 
-  $( "#counts" ).append( "<ul>" );
-  $( "#counts" ).append( "<div class='proportionchart'>" );
-
-
-  $.each( myCounts, function( i, catitem ) {
-       category = catitem.category;
-       comparison = catitem.proportion - baseCounts[i].proportion;
-       proportionsArray.push([category, comparison]);
-       });
-
-  console.log(proportionsArray);
-  var data = google.visualization.arrayToDataTable( proportionsArray );
-  var myNodes = document.getElementsByClassName("proportionchart");
-  var myNodeIndex = myNodes.length-1;
-  var myNode = myNodes[myNodeIndex];
-
-  var compareoptions = {
-          bars: 'horizontal',
-          height: 300,
-         title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
-         hAxis: {
-           title: 'Proportion',
-           maxValue: .5,
-           minValue: -.5,
-           viewWindow: {
-             max: .6,
-             min: -.6
-           }
-         },
-         vAxis: {
-           title: 'Categories'
-         }
-       };
-
-  //var chart = new google.visualization.BarChart(myNode);
-  //var chart = new google.visualization.BarChart( document.getElementsByClassName("proportionchart").slice(-1)[0] );
-  //chart.draw(dataTable, options);
-
-  var chart = new google.charts.Bar( myNode );
-  chart.draw(data, google.charts.Bar.convertOptions(options));
-
-  }
+           title: 'Difference between proportions of results for "' + searches[searchone].term + '" and "' + searches[searchtwo].term + '" in each category',
+           hAxis: {
+             title: 'Proportion for "' + searches[searchone].term + '" | Proportion for "' + searches[searchtwo].term + '"',
+             maxValue: .5,
+             minValue: -.5,
+             viewWindow: {
+               max: .6,
+               min: -.6
+             }
+           },
+           vAxis: { title: 'Category' }
+         };
+    var termcompdata = google.visualization.arrayToDataTable( compareArray );
+    var myCNodes = document.getElementsByClassName("comparechart");
+    var myCNode = myCNodes[0];
+    var chart = new google.charts.Bar( myCNode );
+    chart.draw(termcompdata, google.charts.Bar.convertOptions(compareoptions));
+}
 
 
 function keysrt(arr, key, reverse) {
