@@ -111,6 +111,7 @@ $( "#past" ).on( "click", ".pastsearch", function() {
 
 $( "#past" ).on( "click", "#showcompare", function() {
     $( "#past" ).empty();
+    $( "#past" ).append("<h4>Choose any two searches to compare</h4>");
     $( "#past" ).append("<dl>");
     for (var i = 1; i < searches.length; i++) {
       $( "#past dl" ).append('<dt><input type="checkbox" name="term" id="' + i + '" value="' + i + '"> <label for="' + i + '">' + searches[i].term + '</label></dt>');
@@ -139,7 +140,7 @@ function showSearches() {
     $("#past dt").last().data("searchIndex", i);
     }
     if (searches.length > 2) {
-      $("#past dl").after('<input id="showcompare" type="button" value="Compare terms" />')
+      $("#past dl").after('<input id="showcompare" type="button" value="Compare searches" />')
     }
  }
 
@@ -262,8 +263,8 @@ function displayCounts(searchIndex) {
   origcategories = keysrt(searches[0].categories, 'category');
   $.each( categories, function( i, catitem ) {
        category = catitem.category;
-       origpercent = Math.round(origcategories[i].proportion*100);
-       percent =  Math.round(catitem.proportion*100);
+       origpercent = origcategories[i].proportion;
+       percent =  catitem.proportion;
        comparison = catitem.proportion - origcategories[i].proportion;
        proportionsArray.push([category, comparison]);
        percentArray.push([category, percent, origpercent]);
@@ -275,6 +276,7 @@ function displayCounts(searchIndex) {
        height: 400,
        hAxis: {
          title: 'Percentage',
+         format: 'percent',
          minValue: 0,
            },
       legend: { position: 'none' },
@@ -308,36 +310,52 @@ function displayCounts(searchIndex) {
   var myPNodes = document.getElementsByClassName("percentagechart");
   var myPNode = myPNodes[0];
   var perchart = new google.charts.Bar( myPNode );
-  perchart.draw(perdata, percentOptions);
+  perchart.draw(perdata, google.charts.Bar.convertOptions(percentOptions));
 
   var compdata = google.visualization.arrayToDataTable( proportionsArray );
   var myCNodes = document.getElementsByClassName("proportionchart");
   var myCNode = myCNodes[0];
   var chart = new google.charts.Bar( myCNode );
-  chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
+  chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions))
+  //chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
 }
 
 
 function compareTerms(searchone, searchtwo) {
   $( "#chart_div" ).empty();
-  var compareArray = [['Category', 'Proportion',]];
+  var compareArray = [['Category', 'Difference']];
   var termOne = keysrt(searches[searchone].categories, 'category');
   var termTwo = keysrt(searches[searchtwo].categories, 'category');
   $( "#chart_div" ).append( "<div class='comparechart panel panel-default'>" );
+  var tipText = "";
+  var construct = {};
   $.each( termOne, function( i, catitem ) {
     //make our first proportion negative, then add them together to find the midpoint
     oneprop = catitem.proportion - (catitem.proportion*2);
     comparison = oneprop + termTwo[i].proportion;
-    compareArray.push([catitem.category, comparison]);
+    tipText = searches[searchone].term + ": " + Math.round(catitem.proportion*100) + "%" +
+              " -- " + searches[searchtwo].term + ": " +  Math.round(termTwo[i].proportion*100) + "%";
+    //as per http://stackoverflow.com/questions/36729459/google-bar-chart-custom-tooltip-does-not-work
+    construct = {
+      v: comparison,
+      f: tipText
+    }
+    compareArray.push([catitem.category, construct]);
     });
+
+    var termcompdata = google.visualization.arrayToDataTable( compareArray );
+    //termcompdata.setColumnProperty(2, 'type', 'string');
+    //termcompdata.setColumnProperty(2, 'role', 'tooltip');
+
     var compareoptions = {
+            tooltip: {isHtml: true},
             bars: 'horizontal',
             height: 400,
             legend: { position: 'none' },
 
            title: 'Difference between proportions of results for "' + searches[searchone].term + '" and "' + searches[searchtwo].term + '" in each category',
            hAxis: {
-             title: 'Proportion for "' + searches[searchone].term + '" | Proportion for "' + searches[searchtwo].term + '"',
+             title: searches[searchone].term + "    |    " + searches[searchtwo].term,
              maxValue: .5,
              minValue: -.5,
              viewWindow: {
@@ -347,13 +365,17 @@ function compareTerms(searchone, searchtwo) {
            },
            vAxis: { title: 'Category' }
          };
-    var termcompdata = google.visualization.arrayToDataTable( compareArray );
+
     var myCNodes = document.getElementsByClassName("comparechart");
     var myCNode = myCNodes[0];
     var chart = new google.charts.Bar( myCNode );
     chart.draw(termcompdata, google.charts.Bar.convertOptions(compareoptions));
 }
 
+function setTip(comparison, tipText) {
+    this.v = comparison;
+    this.f = tipText;
+}
 
 function keysrt(arr, key, reverse) {
     var sortOrder = 1;
