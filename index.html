@@ -21,14 +21,13 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 
 <div class="row">
 
-<p>Enter your PubMed search below:</p>
 <!--<form id="search">
     <input id="pmsearch" type="text" />
     <input id="runsearch" type="button" value="Search by category" />
 </form>
 -->
 
-<div class="col-sm-6 col-md-8 col-lg-9">
+<div id="left" class="col-sm-6 col-md-8 col-lg-9">
 
 <div id="search" class="input-group input-group-lg">
   <input type="text" id="pmsearch" class="form-control">
@@ -36,6 +35,14 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
     <button id="runsearch" class="btn btn-default" type="button">Search</button>
   </span>
 
+</div>
+
+<div id="printable">
+  <div id="printable-stuff">
+  <span class="close">×</span>
+  <!--<canvas id="myCanvas2" width="900" height="550" >
+    Your browser does not support the HTML5 canvas tag.</canvas>-->
+  </div>
 </div>
 
 <div id="counts"></div>
@@ -69,7 +76,8 @@ var search = [];
 var catCounts = [];
 var catClone = [];
 google.charts.load('current', {packages: ['corechart', 'bar']});
-
+var currentwidth = $("#left").innerWidth() * .9;
+console.log(currentwidth);
 
 var cats =["Analytical, Diagnostic and Therapeutic Techniques and Equipment", "Anatomy", "Anthropology, Education, Sociology and Social Phenomena", "Chemicals and Drugs", "Disciplines and Occupations", "Diseases", "Geographical Locations", "Health Care", "Humanities", "Information Science", "Organisms", "Persons", "Phenomena and Processes", "Psychiatry and Psychology", "Technology and Food and Beverages"];
 
@@ -129,6 +137,12 @@ $( "#past" ).on( "click", ".showsearches", function() {
     showSearches();
     });
 
+$( "#chart_div" ).on( "click", ".printMe", function() {
+    var type = $(this).data("type");
+    getprint(type);
+    });
+
+
 function showSearches() {
   $( "#past" ).empty();
   $( "#past" ).removeClass( "hideme" );
@@ -144,12 +158,26 @@ function showSearches() {
     }
  }
 
+
+ //Printable modal stuff
+ //$( "#left" ).on( "click", ".printMe", function() {
+//     $("#printable").css("display", "block");
+  //   });
+
+ //they can only select two terms to compare....
+ $( "#past" ).on( "change", "input[name='term']:checked", function() {
+   var cnt = $("input[name='term']:checked").length;
+   if (cnt > 2) {
+     $("input[name='term']:checked").first().prop( "checked", false );
+   }
+ });
+
 function dosearch(term) {
   showWait();
   catClone = cats.slice(0);
   while (catCounts.length) { catCounts.pop(); }
   $.ajax({
-    url: 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+    url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
     data: {
     db: 'pubmed',
     usehistory: 'y',
@@ -228,7 +256,7 @@ function setcatCount(category, sresults, proportion) {
 
 function esearch(term, searchstr) {
   $.ajax({
-	url: 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+	url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
 	data: {
 	db: 'pubmed',
 	usehistory: 'y',
@@ -274,6 +302,7 @@ function displayCounts(searchIndex) {
          title: 'Percentage of results in each category for "' + searches[searchIndex].term + '"'
               },
        height: 400,
+       width: currentwidth,
        hAxis: {
          title: 'Percentage',
          format: 'percent',
@@ -289,6 +318,7 @@ function displayCounts(searchIndex) {
       var compareoptions = {
               bars: 'horizontal',
               height: 400,
+              width: currentwidth,
               legend: { position: 'none' },
 
              title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
@@ -302,7 +332,7 @@ function displayCounts(searchIndex) {
                }
              },
              vAxis: {
-               title: 'Categories'
+               title: 'Category'
              }
            };
 
@@ -316,7 +346,21 @@ function displayCounts(searchIndex) {
   var myCNodes = document.getElementsByClassName("proportionchart");
   var myCNode = myCNodes[0];
   var chart = new google.charts.Bar( myCNode );
-  chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions))
+  google.visualization.events.addListener(chart, 'select', selectHandler);
+  chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
+  $(".proportionchart").append('<a href="#!" class="printMe">Printable version</a></dt>');
+  $(".printMe").last().data("type", "proportion");
+
+
+  function selectHandler() {
+    var selectedItem = chart.getSelection()[0];
+    if (selectedItem) {
+      var pmCategory = compdata.getValue(selectedItem.row, 0);
+      var resultsURL = 'https://www.ncbi.nlm.nih.gov/pubmed/';
+      resultsURL = resultsURL + '?term=medline[sb]+AND+' + searches[searchIndex].term + '+AND+' + pmCategory + ' Category[MESH]';
+      window.open(resultsURL,'_blank');
+    }
+  }
   //chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
 }
 
@@ -344,23 +388,23 @@ function compareTerms(searchone, searchtwo) {
     });
 
     var termcompdata = google.visualization.arrayToDataTable( compareArray );
-    //termcompdata.setColumnProperty(2, 'type', 'string');
-    //termcompdata.setColumnProperty(2, 'role', 'tooltip');
 
     var compareoptions = {
             tooltip: {isHtml: true},
             bars: 'horizontal',
+            width: currentwidth,
+
             height: 400,
             legend: { position: 'none' },
 
            title: 'Difference between proportions of results for "' + searches[searchone].term + '" and "' + searches[searchtwo].term + '" in each category',
            hAxis: {
              title: searches[searchone].term + "    |    " + searches[searchtwo].term,
-             maxValue: .5,
-             minValue: -.5,
+             maxValue: .7,
+             minValue: -.7,
              viewWindow: {
-               max: .6,
-               min: -.6
+               max: .8,
+               min: -.8
              }
            },
            vAxis: { title: 'Category' }
@@ -372,10 +416,41 @@ function compareTerms(searchone, searchtwo) {
     chart.draw(termcompdata, google.charts.Bar.convertOptions(compareoptions));
 }
 
-function setTip(comparison, tipText) {
-    this.v = comparison;
-    this.f = tipText;
+function getprint(type) {
+  $( "#printable img" ).remove();
+  alert(type);
+  if (type == "proportion") {
+    var chartsvg = document.getElementsByTagName("svg")[1];
+    var cln = chartsvg.cloneNode(true);
+    cln.setAttribute("id", "printchart");
+    cln.setAttribute("height", "400");
+    cln.setAttribute("width", "750");
+
+    var node = document.createElement("div");
+    node.setAttribute("style", "display: none;");
+    node.setAttribute("id", "hiddendiv");
+    node.appendChild(cln);
+    document.body.appendChild(node);
+
+    var printSvg = document.getElementById("printchart");
+    var xmlString = (new XMLSerializer).serializeToString(printSvg);
+    console.log(xmlString);
+    var data_uri = "data:image/svg+xml;base64," + window.btoa(xmlString);
+    $( "#printable-stuff" ).append('<img src="' + data_uri + '">');
+    $("#printable").css("display", "block");
+  }
 }
+
+$(".close").click(function(){
+  $("#printable").css("display", "none");
+      });
+
+$(document).click(function(event) {
+   var closeit = document.getElementById('printable');
+   if (event.target == closeit) {
+      $("#printable").css("display", "none");
+      }
+      });
 
 function keysrt(arr, key, reverse) {
     var sortOrder = 1;
