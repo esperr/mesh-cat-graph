@@ -1,22 +1,23 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-  <title>Results by MeSH category</title>
+  <title>MeSH Category Graph</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
   <link href="custom.css" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
 </head>
 
 <!--
-Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
+Designed and built by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 -->
 <body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <div class="container">
 
-<div class="jumbotron">
-  <h1>Search by MeSH Category</h1>
+<div id="topbanner" class="jumbotron">
+  <h1>MeSH Category Graph</h1>
 </div>
 
 <div class="row">
@@ -27,7 +28,7 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 </form>
 -->
 
-<div id="left" class="col-sm-6 col-md-8 col-lg-9">
+<div id="left" class="col-sm-12 col-md-10 col-lg-9">
 
 <div id="search" class="input-group input-group-lg">
   <input type="text" id="pmsearch" class="form-control">
@@ -45,14 +46,13 @@ Thrown together by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
   </div>
 </div>
 
-<div id="counts"></div>
 <div id="chart_div">
   <p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
 </div>
 
 </div>
 
-<div class="col-sm-6 col-md-4 col-lg-3">
+<div class="col-sm-12 col-md-2 col-lg-3">
 
 <div id="past" class="panel panel-default hideme">
   <div class="panel-heading">
@@ -77,7 +77,13 @@ var catCounts = [];
 var catClone = [];
 google.charts.load('current', {packages: ['corechart', 'bar']});
 var currentwidth = $("#left").innerWidth() * .9;
-console.log(currentwidth);
+var mywidth = 600;
+var myheight = 342;
+if (currentwidth > mywidth) {
+  mywidth = currentwidth;
+  myheight = currentwidth*.57;
+}
+console.log(mywidth);
 
 var cats =["Analytical, Diagnostic and Therapeutic Techniques and Equipment", "Anatomy", "Anthropology, Education, Sociology and Social Phenomena", "Chemicals and Drugs", "Disciplines and Occupations", "Diseases", "Geographical Locations", "Health Care", "Humanities", "Information Science", "Organisms", "Persons", "Phenomena and Processes", "Psychiatry and Psychology", "Technology and Food and Beverages"];
 
@@ -86,7 +92,7 @@ dosearch(term);
 
 function handlesearch() {
   term = $("#pmsearch").val();
-  dosearch(term)
+  dosearch(term);
   $("#pmsearch").val("");
   document.getElementById('pmsearch').focus();
   }
@@ -119,7 +125,7 @@ $( "#past" ).on( "click", ".pastsearch", function() {
 
 $( "#past" ).on( "click", "#showcompare", function() {
     $( "#past" ).empty();
-    $( "#past" ).append("<h4>Choose any two searches to compare</h4>");
+    $( "#past" ).append("<p>Choose any two searches to compare</p>");
     $( "#past" ).append("<dl>");
     for (var i = 1; i < searches.length; i++) {
       $( "#past dl" ).append('<dt><input type="checkbox" name="term" id="' + i + '" value="' + i + '"> <label for="' + i + '">' + searches[i].term + '</label></dt>');
@@ -172,12 +178,25 @@ function showSearches() {
    }
  });
 
+ //If something goes wrong, we start over
+ function startOver() {
+   console.log("Something bad happened when we called the API...");
+   searches.pop();
+   handlesearch();
+   }
+
+
 function dosearch(term) {
   showWait();
   catClone = cats.slice(0);
   while (catCounts.length) { catCounts.pop(); }
   $.ajax({
     url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+    error: function () {
+      startOver();
+      //alert("Oops, something went wrong. Please try again!")
+      return;
+    },
     data: {
     db: 'pubmed',
     usehistory: 'y',
@@ -189,6 +208,19 @@ function dosearch(term) {
     },
     success: function( data ) {
       // e.g. filter the response
+      if (!data.esearchresult.count) {
+        //if there's no count  we have to start over
+        //searches.pop();
+        //alert("Oops, something went wrong. Please try again!");
+        //showDone();
+        startOver();
+        return;
+      }
+      if (data.esearchresult.count == "0") {
+        $("#chart_div").prepend('<div class="alert alert-danger" role="alert">Nothing found for this search. Please try again</div>');
+        showDone();
+        return;
+      } else {
       search = {
         'term': term,
         'count': data.esearchresult.count,
@@ -197,6 +229,7 @@ function dosearch(term) {
       searches.push(search);
       getCatCounts(term);
       }
+    }
   });
 }
 
@@ -228,9 +261,10 @@ function getCatCounts(term) {
 
 function updateCatCounts(data) {
   searchIndex = searches.length - 1;
-
+  console.log(data.esearchresult);
   catIndex = data.esearchresult.translationstack.length - 2;
   category = data.esearchresult.translationstack[catIndex].term;
+  console.log(category);
   category = category.slice(1, -16)
   count = data.esearchresult.count;
   mySearch = searches[searchIndex];
@@ -257,6 +291,11 @@ function setcatCount(category, sresults, proportion) {
 function esearch(term, searchstr) {
   $.ajax({
 	url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
+  error: function () {
+    startOver();
+    //alert("Oops, something went wrong. Please try again!")
+    return;
+  },
 	data: {
 	db: 'pubmed',
 	usehistory: 'y',
@@ -266,7 +305,17 @@ function esearch(term, searchstr) {
 	email: 'ed_sperr@hotmail.com',
 	tool: 'catcount'
 },
-  success: updateCatCounts
+  success: function( data ) {
+    if (data.esearchresult.translationstack) {
+      updateCatCounts(data);
+    } else {
+      //if there's no translationstack we have to start over
+      //searches.pop();
+      //alert("Oops, something went wrong. Please try again!");
+      startOver();
+      return;
+    }
+  }
      });
 }
 
@@ -283,6 +332,10 @@ function displayCounts(searchIndex) {
   showSearches();
   $( "#chart_div" ).empty();
   total = Number(searches[searchIndex].count);
+  //if total == 0 {
+  //  $( "#chart_div" ).append('<div class="alert alert-danger" role="alert">Nothing found for this search. Please try again</div>.');
+  //  return;
+//  }
   categories = searches[searchIndex].categories;
   categories = keysrt(categories, 'category');
   $( "#chart_div" ).prepend( "<div class='proportionchart panel panel-default'>" );
@@ -301,8 +354,9 @@ function displayCounts(searchIndex) {
        chart: {
          title: 'Percentage of results in each category for "' + searches[searchIndex].term + '"'
               },
-       height: 400,
-       width: currentwidth,
+       height: myheight,
+       width: mywidth,
+       fontName: 'sans-serif',
        hAxis: {
          title: 'Percentage',
          format: 'percent',
@@ -317,8 +371,9 @@ function displayCounts(searchIndex) {
 
       var compareoptions = {
               bars: 'horizontal',
-              height: 400,
-              width: currentwidth,
+              height: myheight,
+              width: mywidth,
+              fontName: 'sans-serif',
               legend: { position: 'none' },
 
              title: 'Proportion of results for "' + searches[searchIndex].term + '" in each category compared to baseline',
@@ -340,7 +395,11 @@ function displayCounts(searchIndex) {
   var myPNodes = document.getElementsByClassName("percentagechart");
   var myPNode = myPNodes[0];
   var perchart = new google.charts.Bar( myPNode );
+  google.visualization.events.addListener(perchart, 'select', selectHandler);
   perchart.draw(perdata, google.charts.Bar.convertOptions(percentOptions));
+  $(".percentagechart").prepend('<div id="percentkey"><span style="color: #4285F4">Your search</span><br /><span style="color: #DB4437;">All MEDLINE</span></div>');
+  $(".percentagechart").append('<a href="#!" class="printMe">Printable version</a></dt>');
+  $(".printMe").first().data("type", "percentage");
 
   var compdata = google.visualization.arrayToDataTable( proportionsArray );
   var myCNodes = document.getElementsByClassName("proportionchart");
@@ -350,6 +409,13 @@ function displayCounts(searchIndex) {
   chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
   $(".proportionchart").append('<a href="#!" class="printMe">Printable version</a></dt>');
   $(".printMe").last().data("type", "proportion");
+
+  //var viewBox="0 0 700 400";
+  //var resizeMe = document.getElementsByTagName("svg")[0];
+  //console.log(resizeMe);
+  //resizeMe.setAttributeNS(null,"viewBox",viewBox);
+  //resizeMe.removeAttributeNS(null,"width");
+  //resizeMe.removeAttributeNS(null,"height");
 
 
   function selectHandler() {
@@ -392,9 +458,9 @@ function compareTerms(searchone, searchtwo) {
     var compareoptions = {
             tooltip: {isHtml: true},
             bars: 'horizontal',
-            width: currentwidth,
-
-            height: 400,
+            width: mywidth,
+            fontName: 'sans-serif',
+            height: myheight,
             legend: { position: 'none' },
 
            title: 'Difference between proportions of results for "' + searches[searchone].term + '" and "' + searches[searchtwo].term + '" in each category',
@@ -414,17 +480,23 @@ function compareTerms(searchone, searchtwo) {
     var myCNode = myCNodes[0];
     var chart = new google.charts.Bar( myCNode );
     chart.draw(termcompdata, google.charts.Bar.convertOptions(compareoptions));
+    $(".comparechart").append('<a href="#!" class="printMe">Printable version</a></dt>');
 }
 
 function getprint(type) {
   $( "#printable img" ).remove();
-  alert(type);
-  if (type == "proportion") {
-    var chartsvg = document.getElementsByTagName("svg")[1];
+  $( "#hiddendiv" ).remove();
+
+    if (type == "proportion") {
+      var chartsvg = document.getElementsByTagName("svg")[1];
+    } else {
+      var chartsvg = document.getElementsByTagName("svg")[0];
+    }
     var cln = chartsvg.cloneNode(true);
     cln.setAttribute("id", "printchart");
-    cln.setAttribute("height", "400");
-    cln.setAttribute("width", "750");
+
+    cln.setAttribute("version", 1.1);
+    cln.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
     var node = document.createElement("div");
     node.setAttribute("style", "display: none;");
@@ -433,13 +505,33 @@ function getprint(type) {
     document.body.appendChild(node);
 
     var printSvg = document.getElementById("printchart");
+    //do text stuff Here
+
+    if (type == "percentage") {
+      appendText("Your search", "#4285F4", mywidth-100, 15, "bold");
+      appendText("All MEDLINE", "#DB4437", mywidth-100, 35, "bold");
+    }
+    appendText("Made with Mesh Category Graph: http://pubvenn.appspot.com/", "darkgrey", 15, myheight-5, "normal");
+    console.log(printSvg);
+    //alltext.setAttribute("font-family", "Roboto");
     var xmlString = (new XMLSerializer).serializeToString(printSvg);
-    console.log(xmlString);
     var data_uri = "data:image/svg+xml;base64," + window.btoa(xmlString);
     $( "#printable-stuff" ).append('<img src="' + data_uri + '">');
     $("#printable").css("display", "block");
+
+    function appendText(text, color, x, y, weight) {
+      var newText = document.createElementNS("http://www.w3.org/2000/svg","text");
+      newText.setAttributeNS(null,"font-size",".9em");
+      newText.setAttributeNS(null,"font-family","sans-serif");
+      newText.setAttributeNS(null,"x",x);
+      newText.setAttributeNS(null,"y",y);
+      newText.setAttributeNS(null,"fill",color);
+      newText.setAttributeNS(null,"font-weight",weight);
+      var textNode = document.createTextNode(text);
+      newText.appendChild(textNode);
+      printSvg.appendChild(newText);
+    }
   }
-}
 
 $(".close").click(function(){
   $("#printable").css("display", "none");

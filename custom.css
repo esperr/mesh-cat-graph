@@ -4,6 +4,11 @@ body {
   margin-right: 4em;
   }
 
+#topbanner {
+  color: white;
+  background-color: rgb(70,131,193);
+  font-family: "Century Gothic", Helvetica, sans-serif;
+  }
 
 #search {
     border: 1px solid grey;
@@ -19,9 +24,18 @@ body {
   margin-top: 1em;
  }
 
- #past dl { padding: 1em; }
+ #past dl { padding: 1em;
+            margin-bottom: 0; }
+
+#past p {
+  margin-left: 1em;
+}
 
  #compare, #showcompare { margin: 1em; }
+
+ #left{
+   min-width: 700px;
+  }
 
  #printable {
    display: none; /* Hidden by default */
@@ -43,4 +57,10 @@ body {
    padding: 20px;
    border: 1px solid #888;
    width: 80%;
+ }
+
+ #percentkey {
+   float: right;
+   font-weight: bold;
+   font-size: .9em;
  }
