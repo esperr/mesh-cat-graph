@@ -18,6 +18,7 @@ Designed and built by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 
 <div id="topbanner" class="jumbotron">
   <h1>MeSH Category Graph</h1>
+  <a id="about" class="label label-default" href="about.html">About MeSH Category Graph</a>
 </div>
 
 <div class="row">
@@ -47,7 +48,11 @@ Designed and built by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 </div>
 
 <div id="chart_div">
-  <p>The vast Medical Subject Heading system is organized into 19 top-level categories (15 of which are searchable). It can be interesing to see just how a search breaks down into these categories.</p>
+  <div id="splash">
+    <p>Enter your MEDLINE search above, and MeSH Category Graph will show how the concepts in your results stack up against the <a href="https://www.nlm.nih.gov/bsd/disted/meshtutorial/meshtreestructures/">16 top-level categories</a>
+      in the MeSH hierarchy. For each search you'll see <em>two</em> graphs &mdash; one showing percentages compared to those for
+      all of MEDLINE and another showing relative proportion. Once you have completed at least two searches, you can <em>compare</em> the proportions of one search against another. <em><a href="about.html">(more)</a></em></p>
+    </div>
 </div>
 
 </div>
@@ -65,8 +70,20 @@ Designed and built by Ed Sperr (esperr@uga.edu or ed_sperr@hotmail.com)
 
 </div>
 
+
 </div>
 </div>
+
+
+<footer class="footer">
+  <div class="container">
+    <span class="text-muted">  <p>Design and contruction by Ed Sperr, M.L.I.S. (<a href="mailto:ed_sperr@hotmail.com">ed_sperr@hotmail.com</a>)   |
+      Data from <a href="http://www.ncbi.nlm.nih.gov/">NCBI</a>  |   Charting tools from  <a href="https://developers.google.com/chart/interactive/docs/gallery/barchart" target="_blank">Google</a>
+     | See the code at <a href="https://github.com/esperr/mesh-cat-graph">GitHub</a></p></span>
+  </div>
+</footer>
+
+
 <script>
 
 (function() {
@@ -101,11 +118,11 @@ function showWait() {
   $( "#pmsearch" ).prop( "disabled", true );
   $( "#runsearch" ).prop( "disabled", true );
   $( "form" ).addClass( "hideme" );
-  $("#search").after('<progress id="fetchresults" value="1" max="100"></progress>');
+  $("#search").after('<div id="loading"><progress id="fetchresults" value="1" max="100"></progress></div>');
   if (searches.length > 0) {
-      $("#search").after('<div id="loading"><p>Searching -- please wait....</p>');
+      $("#loading").append('<p>Searching -- please wait....</p>');
     } else {
-      $( "#search" ).after( '<div id="loading">Loading baseline...</span>' );
+      $( "#loading" ).append( '<div id="loading">Loading baseline...</span>' );
     }
   }
 
@@ -180,6 +197,7 @@ function showSearches() {
 
  //If something goes wrong, we start over
  function startOver() {
+   $("#loading").remove();
    console.log("Something bad happened when we called the API...");
    searches.pop();
    handlesearch();
@@ -261,10 +279,8 @@ function getCatCounts(term) {
 
 function updateCatCounts(data) {
   searchIndex = searches.length - 1;
-  console.log(data.esearchresult);
   catIndex = data.esearchresult.translationstack.length - 2;
   category = data.esearchresult.translationstack[catIndex].term;
-  console.log(category);
   category = category.slice(1, -16)
   count = data.esearchresult.count;
   mySearch = searches[searchIndex];
@@ -340,7 +356,7 @@ function displayCounts(searchIndex) {
   categories = keysrt(categories, 'category');
   $( "#chart_div" ).prepend( "<div class='proportionchart panel panel-default'>" );
   $( "#chart_div" ).prepend( "<div class='percentagechart panel panel-default'>" );
-  $( "#chart_div" ).prepend( '<h2>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h2>" );
+  $( "#chart_div" ).prepend( '<h3>Your search for "' + searches[searchIndex].term + '" returned ' + total + " results</h3>" );
   origcategories = keysrt(searches[0].categories, 'category');
   $.each( categories, function( i, catitem ) {
        category = catitem.category;
@@ -408,6 +424,7 @@ function displayCounts(searchIndex) {
   google.visualization.events.addListener(chart, 'select', selectHandler);
   chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
   $(".proportionchart").append('<a href="#!" class="printMe">Printable version</a></dt>');
+  $(".proportionchart").after('<br /><br /><br />');
   $(".printMe").last().data("type", "proportion");
 
   //var viewBox="0 0 700 400";
@@ -424,6 +441,7 @@ function displayCounts(searchIndex) {
       var pmCategory = compdata.getValue(selectedItem.row, 0);
       var resultsURL = 'https://www.ncbi.nlm.nih.gov/pubmed/';
       resultsURL = resultsURL + '?term=medline[sb]+AND+' + searches[searchIndex].term + '+AND+' + pmCategory + ' Category[MESH]';
+      encodeURI(resultsURL);
       window.open(resultsURL,'_blank');
     }
   }
@@ -446,6 +464,7 @@ function compareTerms(searchone, searchtwo) {
     tipText = searches[searchone].term + ": " + Math.round(catitem.proportion*100) + "%" +
               " -- " + searches[searchtwo].term + ": " +  Math.round(termTwo[i].proportion*100) + "%";
     //as per http://stackoverflow.com/questions/36729459/google-bar-chart-custom-tooltip-does-not-work
+    //not sure where else it is documented....
     construct = {
       v: comparison,
       f: tipText
@@ -511,8 +530,7 @@ function getprint(type) {
       appendText("Your search", "#4285F4", mywidth-100, 15, "bold");
       appendText("All MEDLINE", "#DB4437", mywidth-100, 35, "bold");
     }
-    appendText("Made with Mesh Category Graph: http://pubvenn.appspot.com/", "darkgrey", 15, myheight-5, "normal");
-    console.log(printSvg);
+    appendText("Made with Mesh Category Graph: http://esperr.github.io/mesh-cat-graph/", "darkgrey", 15, myheight-5, "normal");
     //alltext.setAttribute("font-family", "Roboto");
     var xmlString = (new XMLSerializer).serializeToString(printSvg);
     var data_uri = "data:image/svg+xml;base64," + window.btoa(xmlString);
