@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+ <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="custom.css" rel="stylesheet" type="text/css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+<title>About MeSH Category Graph</title>
+</head>
+
+<body>
+
+<div class="container">
+<div id="topbanner" class="jumbotron">
+	<h1>About MeSH Category Graph</h1>
+	<a id="about" class="label label-default" href="index.html">Home</a>
+</div>
+   <div class="row">
+
+<div class="col-sm-7 col-md-7 col-lg-7">
+	<div class="panel panel-default">
+	<div class="panel-body">
+		<h2>Why Mesh Category Graph?</h2>
+    <p>When you search <a href="http://www.ncbi.nlm.nih.gov/pubmed">PubMed</a>, the majority of the results you get back are indexed in <a href="https://www.nlm.nih.gov/pubs/factsheets/medline.html">MEDLINE</a>.
+      A big part of that indexing process is assigning each article around 10 to 12 <a href="https://www.nlm.nih.gov/mesh/2016/mesh_browser/index.html">Medical Subject Headings</a>.This vast system
+      is organized into a hierarchical structure, descending from <a href="https://www.nlm.nih.gov/bsd/disted/meshtutorial/meshtreestructures/">16 top-level categories</a>.</p>
+      <p>MeSH Category Graph takes a MEDLINE search and shows how the concepts in your results stack up against these categories. For each search you'll see <em>two</em> graphs &mdash; one showing percentages compared to those for
+        all of MEDLINE and another showing relative proportion. Once you have completed at least two searches, you can compare the proportions of one search against another.</p>
+      <p>It is instructive to see where the proportions for a given search land. For example, a search for "medicine" returns results where the proportion of MeSH heagings in each category is roughly
+        the same as for MEDLINE as a whole. A search for "taxes" on the other hand involves a much greater proportion of "Health Care" than average, and a lot less "Diseases". Articles about the gene "p53" are much more
+      likely to focus on concepts under "Chemicals and Drugs" or "Phenomena and Processes", and so on.</p>
+
+		<h2>License</h2>
+		<p>Please note that the information provided here comes ultimately from the <a href="http://www.ncbi.nlm.nih.gov/">National Center for Biotechnology Information</a> and is subject to the terms listed under their
+		<a href="http://www.ncbi.nlm.nih.gov/About/disclaimer.html">Disclaimer and Copyright notice</a>.</p>
+    <p>Feel free to us this tool as you wish, but if you use a Category Graph for publication, I'd appreciate a citation:
+      <blockquote>
+        Sperr E. MeSH Category Graph [Internet]. 2016 [cited <em>your_date_here</em>]. Available from http://esperr.github.io/mesh-cat-graph/
+      </blockquote>
+    </p>
+	</div>
+	</div>
+</div>
+
+     <div class="col-sm-5 col-md-5 col-lg-5">
+ <div class="panel panel-default">
+<div class="panel-body">
+<h2>Contact</h2>
+<p>MeSH Category Graph is a experimental project of Ed Sperr, M.L.I.S.</p>
+<p>Ed can be reached at <a href="mailto:ed_sperr@hotmail.com">ed_sperr@hotmail.com</a> or <a href="mailto:esperr@uga.edu">esperr@uga.edu</a>.</p>
+      </div>
+   </div>
+   </div>
+
+
+<div class="col-sm-5 col-md-5 col-lg-5">
+	<div class="panel panel-default">
+	<div class="panel-body">
+		<h2>Technologies</h2>
+		<p>MeSH Category Graph is lashed together with bailing wire and and <a href="http://jquery.com/">jQuery</a>. It utuilizes NCBI's <a href="http://www.ncbi.nlm.nih.gov/books/NBK25501/">Entrez Programming Utilities</a> for searching
+		PubMed and <a href="https://developers.google.com/chart/">Google Charts</a> for visualizing the graphs. Responsive layout made easier with <a href="http://getbootstrap.com/">Bootstrap</a>.</p>
+    <p>You can find the source code for this application at <a href="https://github.com/esperr/mesh-cat-graph">GitHub</a>.</p>
+  </div>
+	</div>
+
+      </div>
+
+</div>
+</div>
+</body>
