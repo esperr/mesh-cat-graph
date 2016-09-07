@@ -422,7 +422,7 @@ function displayCounts(searchIndex) {
   var myPNodes = document.getElementsByClassName("percentagechart");
   var myPNode = myPNodes[0];
   var perchart = new google.charts.Bar( myPNode );
-  google.visualization.events.addListener(perchart, 'select', selectHandler);
+  google.visualization.events.addListener(perchart, 'select', pselect);
   perchart.draw(perdata, google.charts.Bar.convertOptions(percentOptions));
   $(".percentagechart").prepend('<div id="percentkey"><span style="color: #4285F4">Your search</span><br /><span style="color: #DB4437;">All MEDLINE</span></div>');
   $(".percentagechart").append('<a href="#!" class="printMe">Printable version</a></dt>');
@@ -432,7 +432,7 @@ function displayCounts(searchIndex) {
   var myCNodes = document.getElementsByClassName("proportionchart");
   var myCNode = myCNodes[0];
   var chart = new google.charts.Bar( myCNode );
-  google.visualization.events.addListener(chart, 'select', selectHandler);
+  google.visualization.events.addListener(chart, 'select', cselect);
   chart.draw(compdata, google.charts.Bar.convertOptions(compareoptions));
   $(".proportionchart").append('<a href="#!" class="printMe">Printable version</a></dt>');
   $(".proportionchart").after('<br /><br /><br />');
@@ -446,11 +446,26 @@ function displayCounts(searchIndex) {
   //resizeMe.removeAttributeNS(null,"height");
 
 
-  function selectHandler() {
-    var selectedItem = chart.getSelection()[0];
+  function pselect() {
+    selectedItem = perchart.getSelection()[0];
     if (selectedItem) {
-      var pmCategory = compdata.getValue(selectedItem.row, 0);
       var resultsURL = 'https://www.ncbi.nlm.nih.gov/pubmed/';
+      var pmCategory = compdata.getValue(selectedItem.row, 0);
+      if (selectedItem.column == 1) {
+        resultsURL = resultsURL + '?term=medline[sb]+AND+' + searches[searchIndex].term + '+AND+' + pmCategory + ' Category[MESH]';
+      } else {
+        resultsURL = resultsURL + '?term=medline[sb]+AND+' + pmCategory + ' Category[MESH]';
+      }
+      encodeURI(resultsURL);
+      window.open(resultsURL,'_blank');
+    }
+  }
+
+  function cselect() {
+    selectedItem = chart.getSelection()[0];
+    if (selectedItem) {
+      var resultsURL = 'https://www.ncbi.nlm.nih.gov/pubmed/';
+      var pmCategory = compdata.getValue(selectedItem.row, 0);
       resultsURL = resultsURL + '?term=medline[sb]+AND+' + searches[searchIndex].term + '+AND+' + pmCategory + ' Category[MESH]';
       encodeURI(resultsURL);
       window.open(resultsURL,'_blank');
