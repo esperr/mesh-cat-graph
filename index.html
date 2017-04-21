@@ -525,6 +525,7 @@ function compareTerms(searchone, searchtwo) {
     var myCNode = myCNodes[0];
     var chart = new google.charts.Bar( myCNode );
     chart.draw(termcompdata, google.charts.Bar.convertOptions(compareoptions));
+    $(".comparechart").after('<br /><br /><br />');
     $(".comparechart").append('<a href="#!" class="printMe">Printable version</a></dt>');
 }
 
