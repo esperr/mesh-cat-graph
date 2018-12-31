@@ -103,6 +103,7 @@ var searches = [];
 var search = [];
 var catCounts = [];
 var catClone = [];
+var pausetime = performance.now();
 google.charts.load('current', {packages: ['corechart', 'bar']});
 var currentwidth = $("#left").innerWidth() * .9;
 var mywidth = 600;
@@ -219,10 +220,12 @@ function dosearch(term) {
   showWait();
   catClone = cats.slice(0);
   while (catCounts.length) { catCounts.pop(); }
+  pausetime = performance.now();
+  console.log(pausetime);
   $.ajax({
     url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
     error: function () {
-      startOver();
+      //startOver();
       //alert("Oops, something went wrong. Please try again!")
       return;
     },
@@ -316,10 +319,26 @@ function setcatCount(category, sresults, proportion) {
 }
 
 function esearch(term, searchstr) {
+  checktime();
+
+  function checktime() {
+    var t1 = performance.now();
+    var timediff = t1 - pausetime;
+    if (timediff > 380) {
+      callutils();
+    } else {
+      setTimeout(checktime, 40);
+    }
+  }
+
+  function callutils() {
+  pausetime = performance.now();
+  console.log(pausetime);
+
   $.ajax({
 	url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
   error: function () {
-    startOver();
+    //startOver();
     //alert("Oops, something went wrong. Please try again!")
     return;
   },
@@ -344,6 +363,7 @@ function esearch(term, searchstr) {
     }
   }
      });
+  }
 }
 
 function displayCounts(searchIndex) {
