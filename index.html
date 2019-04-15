@@ -324,10 +324,10 @@ function esearch(term, searchstr) {
   function checktime() {
     var t1 = performance.now();
     var timediff = t1 - pausetime;
-    if (timediff > 380) {
+    if (timediff > 420) {
       callutils();
     } else {
-      setTimeout(checktime, 40);
+      setTimeout(checktime, 60);
     }
   }
 
@@ -338,9 +338,7 @@ function esearch(term, searchstr) {
   $.ajax({
 	url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
   error: function () {
-    //startOver();
-    //alert("Oops, something went wrong. Please try again!")
-    return;
+    checktime();
   },
 	data: {
 	db: 'pubmed',
