@@ -278,8 +278,7 @@ $("#runsearch").click(function(){
 function getCatCounts(term) {
 	//We do it this way instaed of a loop so we can easily throttle the count requests with setTimeout
   category = catClone.pop();
-  searchstr = ' AND medline[sb] AND "' + category + ' Category"[Mesh]';
-	esearch(term, searchstr);
+	esearch(term, category);
 	if (catClone.length) {
     setTimeout(function(){
       getCatCounts(term);
@@ -289,11 +288,11 @@ function getCatCounts(term) {
 		}
 }
 
-function updateCatCounts(data) {
+function updateCatCounts(data, category) {
   searchIndex = searches.length - 1;
-  catIndex = data.esearchresult.translationstack.length - 2;
-  category = data.esearchresult.translationstack[catIndex].term;
-  category = category.slice(1, -16)
+  //catIndex = data.esearchresult.translationstack.length - 2;
+  //category = data.esearchresult.translationstack[catIndex].term;
+  //category = category.slice(1, -16)
   count = data.esearchresult.count;
   mySearch = searches[searchIndex];
   total = mySearch.count;
@@ -316,7 +315,8 @@ function setcatCount(category, sresults, proportion) {
     this.proportion = proportion;
 }
 
-function esearch(term, searchstr) {
+function esearch(term, category) {
+  searchstr = ' AND medline[sb] AND "' + category + ' Category"[Mesh]';
   $.ajax({
 	url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi',
   error: function () {
@@ -331,18 +331,11 @@ function esearch(term, searchstr) {
 	retmode: 'json',
 	retmax: 0,
 	email: 'ed_sperr@hotmail.com',
-	tool: 'catcount'
-},
+	tool: 'catcount',
+  api_key: 'f069cf776feaa627ab9b1e0fc2b090610708'
+  },
   success: function( data ) {
-    if (data.esearchresult.translationstack) {
-      updateCatCounts(data);
-    } else {
-      //if there's no translationstack we have to start over
-      //searches.pop();
-      //alert("Oops, something went wrong. Please try again!");
-      startOver();
-      return;
-    }
+    updateCatCounts(data, category);
   }
      });
 }
